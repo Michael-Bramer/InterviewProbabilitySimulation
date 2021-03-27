@@ -3,16 +3,36 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
+using System.Globalization;
 
 
 namespace InterviewSimulation
 {
+    struct InterviewMetrics
+    {
+        public float NumberOfCorrectAnswers;
+        public float NumberOfPassingExams;
+        public float CummulativeProbabilityOfAnsweringCorrectly;
+        public float AverageProbabilityOfAnsweringCorrectly;
+        public float CummulativeProbabilityOfPassing;
+        public float AverageProbabilityOfPassing;
+    };
+
+    struct SolutionTypeRecord
+    {
+        public float NumberPassed;
+        public float AverageProbabilityOfAnsweringCorrectly;
+        public float AverageProbabilityOfPassing;
+    };
+
     struct SimulationRecord
     {
         public int PeopleInterviewed;
-        public float ProbabilityOfCorrectFixedAnswer;
-        public float ProbabilityOfCorrectRandomAnswer;
-        public float DeltaProbability;
+        public SolutionTypeRecord FixedSolution;
+        public SolutionTypeRecord RandomSolution;              
+        public float DeltaCorrectAnswerProbability;
+        public float DeltaPassingIntervewProbability;
     };
 
     class Program
@@ -20,6 +40,7 @@ namespace InterviewSimulation
         public static int NumberOfPeopleInterviewed = 100000;
         public static int NumberOfQuestionsAsked = 20;
         public static int NumberOfAnswersPerQuestion = 5;
+        public static int NumberOfCorrectAnswersToPass = 10;
 
         static void Main(string[] args)
         {
@@ -117,13 +138,25 @@ namespace InterviewSimulation
         public static void RunSimulation()
         {
             //Variable Declaration
-            float FixedCorrect = 0;
-            float RandomCorrect = 0;
-            float TotalFixedCorrect = 0;
-            float TotalRandomCorrect = 0;
-            float AverageFixedCorrect = 0;
-            float AverageRandomCorrect = 0;
+            InterviewMetrics FixedSolutions;
+            InterviewMetrics RandomSolutions;
             int progress = 0;
+
+            //Structure Initialization
+            FixedSolutions.NumberOfCorrectAnswers = 0;
+            FixedSolutions.NumberOfPassingExams = 0; 
+            FixedSolutions.AverageProbabilityOfAnsweringCorrectly = 0;
+            FixedSolutions.CummulativeProbabilityOfAnsweringCorrectly = 0;
+            FixedSolutions.CummulativeProbabilityOfPassing = 0;
+            FixedSolutions.AverageProbabilityOfPassing = 0;
+
+            RandomSolutions.NumberOfCorrectAnswers = 0;
+            RandomSolutions.NumberOfPassingExams = 0;
+            RandomSolutions.AverageProbabilityOfAnsweringCorrectly = 0;
+            RandomSolutions.CummulativeProbabilityOfAnsweringCorrectly = 0;
+            RandomSolutions.CummulativeProbabilityOfPassing = 0;
+            RandomSolutions.AverageProbabilityOfPassing = 0;
+
             Console.WriteLine("\n");
 
            //Create a random number generator.
@@ -153,40 +186,83 @@ namespace InterviewSimulation
             //Calculate the Running Average 
             for (int i = 0; i < NumberOfPeopleInterviewed; i++)
             {
-                FixedCorrect = 0;
-                RandomCorrect = 0;
-                
-                for(int x = 0; x < NumberOfQuestionsAsked; x++)
+                //Reset The Number of Correct Answers for Each Candidate
+                FixedSolutions.NumberOfCorrectAnswers = 0;
+                RandomSolutions.NumberOfCorrectAnswers = 0;
+
+                //Record How Each Candidate Performs
+                for (int x = 0; x < NumberOfQuestionsAsked; x++)
                 {
                     int Answer = rand.Next(0, NumberOfAnswersPerQuestion);
                     if(Answer == RandomAnswerKey[x])
                     {
-                        RandomCorrect += 1;
+                        RandomSolutions.NumberOfCorrectAnswers += 1;
                     }
                     if (Answer == FixedAnswerKey[x])
                     {
-                        FixedCorrect += 1;
+                        FixedSolutions.NumberOfCorrectAnswers += 1;
                     }
                 }
 
-                TotalFixedCorrect  += (FixedCorrect / NumberOfQuestionsAsked);
-                TotalRandomCorrect += (RandomCorrect / NumberOfQuestionsAsked);
+                //Calulate the Cummulative Probability of Answering Correctly From the Current Candidate Pool
+                FixedSolutions.CummulativeProbabilityOfAnsweringCorrectly += (FixedSolutions.NumberOfCorrectAnswers / NumberOfQuestionsAsked);
+                RandomSolutions.CummulativeProbabilityOfAnsweringCorrectly += (RandomSolutions.NumberOfCorrectAnswers / NumberOfQuestionsAsked);
 
-                AverageFixedCorrect = TotalFixedCorrect / (i+1);
-                AverageRandomCorrect = TotalRandomCorrect / (i+1);
+                //Calulate the Average Probability of Answering Correctly From the Current Candidate Pool
+                FixedSolutions.AverageProbabilityOfAnsweringCorrectly = FixedSolutions.CummulativeProbabilityOfAnsweringCorrectly / (i + 1);
+                RandomSolutions.AverageProbabilityOfAnsweringCorrectly = RandomSolutions.CummulativeProbabilityOfAnsweringCorrectly / (i + 1);
+                
+                //Record the Number of Candidates that Passed
+                if(RandomSolutions.NumberOfCorrectAnswers >= NumberOfCorrectAnswersToPass)
+                {
+                    RandomSolutions.NumberOfPassingExams += 1;
+                }
 
-                Results[i].PeopleInterviewed = i + 1;
-                Results[i].ProbabilityOfCorrectFixedAnswer = AverageFixedCorrect;
-                Results[i].ProbabilityOfCorrectRandomAnswer = AverageRandomCorrect;
-                Results[i].DeltaProbability = Math.Abs(AverageFixedCorrect - AverageRandomCorrect);
+                if (FixedSolutions.NumberOfCorrectAnswers >= NumberOfCorrectAnswersToPass)
+                {
+                    FixedSolutions.NumberOfPassingExams += 1;
+                }
 
+                //Record the Probability of Candidates that Passed
+                FixedSolutions.CummulativeProbabilityOfPassing  += FixedSolutions.NumberOfPassingExams  / (i + 1);
+                RandomSolutions.CummulativeProbabilityOfPassing += RandomSolutions.NumberOfPassingExams / (i + 1);
+
+                FixedSolutions.AverageProbabilityOfPassing  = FixedSolutions.CummulativeProbabilityOfPassing / (i + 1);
+                RandomSolutions.AverageProbabilityOfPassing = RandomSolutions.CummulativeProbabilityOfPassing / (i + 1);
+
+                //Record the Results
+                Results[i].PeopleInterviewed                                     = i + 1;
+
+                Results[i].FixedSolution.NumberPassed                            = FixedSolutions.NumberOfPassingExams;
+                Results[i].FixedSolution.AverageProbabilityOfAnsweringCorrectly  = FixedSolutions.AverageProbabilityOfAnsweringCorrectly;
+                Results[i].FixedSolution.AverageProbabilityOfPassing             = FixedSolutions.AverageProbabilityOfPassing;
+                
+                Results[i].RandomSolution.NumberPassed                           = RandomSolutions.NumberOfPassingExams;
+                Results[i].RandomSolution.AverageProbabilityOfAnsweringCorrectly = RandomSolutions.AverageProbabilityOfAnsweringCorrectly;
+                Results[i].RandomSolution.AverageProbabilityOfPassing            = RandomSolutions.AverageProbabilityOfPassing;
+
+                Results[i].DeltaCorrectAnswerProbability   = Math.Abs(FixedSolutions.AverageProbabilityOfAnsweringCorrectly - RandomSolutions.AverageProbabilityOfAnsweringCorrectly);
+                Results[i].DeltaPassingIntervewProbability = Math.Abs(FixedSolutions.AverageProbabilityOfPassing - RandomSolutions.AverageProbabilityOfPassing);
+
+                if (false){
+                    Console.WriteLine(Results[i].PeopleInterviewed + "," +
+                                  Results[i].FixedSolution.AverageProbabilityOfAnsweringCorrectly + "," +
+                                  Results[i].RandomSolution.AverageProbabilityOfAnsweringCorrectly + "," +
+                                  Results[i].DeltaCorrectAnswerProbability + "," +
+                                  Results[i].FixedSolution.NumberPassed + "," +
+                                  Results[i].RandomSolution.NumberPassed + "," +
+                                  Results[i].FixedSolution.AverageProbabilityOfPassing + "," +
+                                  Results[i].RandomSolution.AverageProbabilityOfPassing + "," +
+                                  Results[i].DeltaPassingIntervewProbability);
+                }
+                
                 progress = 100 - ( ((NumberOfPeopleInterviewed - i) * 100) / NumberOfPeopleInterviewed);
                 Console.SetCursorPosition(0, Console.CursorTop);
                 Console.Write("The Simulation has Started. Current Progress: %" + progress);
-
             }
 
             //Generate the Output File
+            GenerateFile(Results);
 
             //Press Enter to Returnt to the Menu
             PressEnterToReturn("Please press ENTER to return to the main menu...");
@@ -227,6 +303,56 @@ namespace InterviewSimulation
         {
             Console.WriteLine("\n" + DisplayText + "\n");
             string DummyInput = Console.ReadLine();
+        }
+
+        public static void GenerateFile(SimulationRecord[] Record)
+        {
+            int progress = 0;
+            string path = @"C:\Users\Michael\Documents\Interview Simulation for " + DateTime.Now.ToString("yyyymmddhhmmss") + @".txt";
+            try
+            {
+                // Create the file, or overwrite if the file exists.
+                using (FileStream fs = File.Create(path))
+                {
+                    byte[] infoh = new UTF8Encoding(true).GetBytes("Number Interviewed" + "," +
+                                                                    "Average Probability of Answering Correctly for a Fixed Solution Key" + "," +
+                                                                    "Average Probability of Answering Correctly for a Random Solution Key" + "," +
+                                                                    "Delta Probability of Answering Correctly" + "," +
+                                                                    "Number of Passing Candidates for a Fixed Solution Key" + "," +
+                                                                    "Number of Passing Candidates for a Random Solution Key" + "," +
+                                                                    "Average Probability of Passing for Interview for a Fixed Solution Key" + "," +
+                                                                    "Average Probability of Passing the Interview for a Random Solution Key" + "," +
+                                                                    "Delta Probability of Passing" + "," +
+                                                                    "Qb Stock" + "\n");
+
+                    // Add some information to the file.
+                    fs.Write(infoh, 0, infoh.Length);
+
+                    for (int i = 0; i < Record.Length; i++)
+                    {
+                        byte[] info = new UTF8Encoding(true).GetBytes(Record[i].PeopleInterviewed.ToString() + "," +
+                                                                      Record[i].FixedSolution.AverageProbabilityOfAnsweringCorrectly.ToString() + "," +
+                                                                      Record[i].RandomSolution.AverageProbabilityOfAnsweringCorrectly.ToString() + "," +
+                                                                      Record[i].DeltaCorrectAnswerProbability.ToString() + "," +
+                                                                      Record[i].FixedSolution.NumberPassed.ToString() + "," +
+                                                                      Record[i].RandomSolution.NumberPassed.ToString() + "," +
+                                                                      Record[i].FixedSolution.AverageProbabilityOfPassing.ToString() + "," +
+                                                                      Record[i].RandomSolution.AverageProbabilityOfPassing.ToString() + "," +
+                                                                      Record[i].DeltaPassingIntervewProbability.ToString() + "\n");
+                        // Add some information to the file.
+                        fs.Write(info, 0, info.Length);
+
+
+                        progress = 100 - (((NumberOfPeopleInterviewed - i) * 100) / NumberOfPeopleInterviewed);
+                        Console.SetCursorPosition(0, Console.CursorTop);
+                        Console.Write("Outputing the Data to the File Has Started. Current Progress: %" + progress);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
 
     }
