@@ -37,10 +37,10 @@ namespace InterviewSimulation
 
     class Program
     {
-        public static int NumberOfPeopleInterviewed = 100000;
-        public static int NumberOfQuestionsAsked = 20;
+        public static int NumberOfPeopleInterviewed = 10;
+        public static int NumberOfQuestionsAsked = 3;
         public static int NumberOfAnswersPerQuestion = 5;
-        public static int NumberOfCorrectAnswersToPass = 10;
+        public static int NumberOfCorrectAnswersToPass = 3;
 
         static void Main(string[] args)
         {
@@ -308,7 +308,7 @@ namespace InterviewSimulation
         public static void GenerateFile(SimulationRecord[] Record)
         {
             int progress = 0;
-            string path = @"C:\Users\Michael\Documents\Interview Simulation for " + DateTime.Now.ToString("yyyymmddhhmmss") + @".txt";
+            string path = @"Interview Simulation for " + DateTime.Now.ToString("yyyymmddhhmmss") + @".txt";
             try
             {
                 // Create the file, or overwrite if the file exists.
